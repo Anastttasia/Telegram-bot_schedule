@@ -1,0 +1,4 @@
+- Изучила как раотает Selenium и Webdriver
+- Запросила Api модеуса, жду ответа
+- Разобрала как работает google developers
+- Подключила googl drive и sheets API к гугл таблице черз Python
