@@ -21,25 +21,25 @@ class ScheduleDB:
 		if self.__cursor:
 			self.__cursor.execute("""CREATE TABLE IF NOT EXISTS {}(
 				"id" INTEGER PRIMARY KEY AUTOINCREMENT,
-				"date"	TEXT,
-				"day_week"	TEXT,
-				"number_lesson"	INTEGER,
+				"date" DATETIME,
+				"time_lesson"	TEXT,
 				"subject_name"	TEXT,
 				"subgroup_number"	INTEGER,
-				"teacher_name"	TEXT)""".format(tableName))
+				"teacher_name"	TEXT,
+				"link_lesson"	TEXT)""".format(tableName))
 			self.__connection.commit()
 
-	def insertData(self, tableName, date, dayWeek, numberLesson, subjectName, subgroupNumber, teacherName):
+	def insertData(self, tableName, date, timeLesson, subjectName, subgroupNumber, teacherName, linkLesson):
 		if self.__cursor:
 			self.__cursor.execute("""INSERT INTO {}(
 				"id",
 				"date",
-				"day_week",
-				"number_lesson",
+				"time_lesson",
 				"subject_name",
 				"subgroup_number",
-				"teacher_name")
-				VALUES(NULL, '{}', '{}', {}, '{}', {}, '{}')""".format(tableName, date, dayWeek, numberLesson, subjectName, subgroupNumber, teacherName))
+				"teacher_name",
+				"link_lesson")
+				VALUES(NULL, '{}', '{}', '{}', {}, '{}', '{}')""".format(tableName, date, timeLesson, subjectName, subgroupNumber, teacherName, linkLesson))
 			self.__connection.commit()
 
 	def updateData(self, tableName, nameField, newMeaning, searchField, searchMeaning):
@@ -49,14 +49,8 @@ class ScheduleDB:
 
 
 	def getDataByDate(self, tableName, date):
+		data = []
 		if self.__cursor:
-		
-			for row in self.__cursor.execute("""SELECT * FROM {} WHERE date IN ('{}') ORDER BY number_lesson""".format(tableName, date)):
-				rowId = row[0]
-				date = row[1]
-				dayWeek = row[2]
-				numberLesson = row[3]
-				subjectName = row[4]
-				subgroupNumber = row[5]
-				teacherName = row[6]
-				print('rowId :: {}, date :: {}, dayWeek :: {}, numberLesson :: {}, subjectName :: {}, subgroupNumber :: {}, teacherName :: {}'.format(rowId, date, dayWeek, numberLesson, subjectName, subgroupNumber, teacherName))
+			for row in self.__cursor.execute("""SELECT * FROM {} WHERE date IN ('{}') ORDER BY time_lesson""".format(tableName, date)):
+				data.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+		return data
