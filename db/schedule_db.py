@@ -24,33 +24,29 @@ class ScheduleDB:
 				"date" DATETIME,
 				"time_lesson"	TEXT,
 				"subject_name"	TEXT,
+				"description"	TEXT,
 				"subgroup_number"	INTEGER,
 				"teacher_name"	TEXT,
 				"link_lesson"	TEXT)""".format(tableName))
 			self.__connection.commit()
 
-	def insertData(self, tableName, date, timeLesson, subjectName, subgroupNumber, teacherName, linkLesson):
+	def insertData(self, tableName, date, timeLesson, subjectName, description, subgroupNumber, teacherName, linkLesson):
 		if self.__cursor:
 			self.__cursor.execute("""INSERT INTO {}(
 				"id",
 				"date",
 				"time_lesson",
 				"subject_name",
+				"description",
 				"subgroup_number",
 				"teacher_name",
 				"link_lesson")
-				VALUES(NULL, '{}', '{}', '{}', {}, '{}', '{}')""".format(tableName, date, timeLesson, subjectName, subgroupNumber, teacherName, linkLesson))
+				VALUES(NULL, '{}', '{}', '{}', '{}', {}, '{}', '{}')""".format(tableName, date, timeLesson, subjectName, description, subgroupNumber, teacherName, linkLesson))
 			self.__connection.commit()
-
-	def updateData(self, tableName, nameField, newMeaning, searchField, searchMeaning):
-		if self.__cursor:
-			self.__cursor.execute("""UPDATE {} SET {} = '{}' WHERE {} LIKE '{}'""".format(tableName, nameField, newMeaning, searchField, searchMeaning))
-			self.__connection.commit()
-
 
 	def getDataByDate(self, tableName, date):
 		data = []
 		if self.__cursor:
 			for row in self.__cursor.execute("""SELECT * FROM {} WHERE date IN ('{}') ORDER BY time_lesson""".format(tableName, date)):
-				data.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+				data.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
 		return data
