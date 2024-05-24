@@ -50,3 +50,7 @@ class ScheduleDB:
 			for row in self.__cursor.execute("""SELECT * FROM {} WHERE date IN ('{}') ORDER BY time_lesson""".format(tableName, date)):
 				data.append((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
 		return data
+	def clearData(self, tableName):
+		if self.__cursor:
+			self.__cursor.execute("""DELETE FROM {}""".format(tableName))
+			self.__connection.commit()
