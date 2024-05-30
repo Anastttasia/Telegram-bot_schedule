@@ -3,43 +3,116 @@ from google.oauth2.service_account import Credentials
 from db.schedule_db import ScheduleDB
 import telebot
 import sqlite3
-import datetime
+from datetime import datetime, timedelta, date
 import time
-from datetime import datetime, date
+import re
+
+table_name = "Netology"
+schedule = ScheduleDB()
+schedule.createNewGroup(table_name)
+schedule.clearData(table_name)
+def authenticate_sheets():
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets"
+    ]
+    creds = Credentials.from_service_account_file("mypython-414513-94cec7c6b257.json", scopes=scopes)
+    client = gspread.authorize(creds)
+    return client
 
 
-scopes = [
+def read_sheet(client, sheet_id, sheet_name):
+    sheet = client.open_by_key(sheet_id)
+    worksheet = sheet.worksheet(sheet_name)
+    data = worksheet.get_all_values()  # Получает весь лист целиком, игнорируя пустые строки и столбцы
+    return data
+
+
+def get_sheets(client, sheet_id):
+    sheet = client.open_by_key(sheet_id)
+    worksheets = sheet.worksheets()
+    return worksheets
+
+
+def fill_dates(schedule, start_date):
+    current_date = datetime.strptime(start_date, "%d-%m-%Y")
+    previous_date = current_date.strftime("%d-%m-%Y")
+
+    for entry in schedule:
+        if len(entry) > 0 and entry[0]:  # Если первая ячейка не пустая, это новый день
+            current_date = current_date + timedelta(days=1)
+            entry[0] = current_date.strftime("%d-%m-%Y")
+            previous_date = entry[0]
+        elif len(entry) > 0:  # Если первая ячейка пустая, используем предыдущую дату
+            entry[0] = previous_date
+
+    return schedule
+
+
+def process_sheets(sheet_id):
+    client = authenticate_sheets()
+    worksheets = get_sheets(client, sheet_id)
+
+    date_pattern = re.compile(r'\d{2}-\d{2}-\d{4}')
+    monday_sheets = []
+
+    for worksheet in worksheets:
+        sheet_name = worksheet.title
+        if date_pattern.match(sheet_name):
+            sheet_date = datetime.strptime(sheet_name, '%d-%m-%Y')
+            if sheet_date.weekday() == 0:  # Проверка на понедельник
+                monday_sheets.append((sheet_date, sheet_name))
+
+    monday_sheets.sort()
+
+    for sheet_date, sheet_name in monday_sheets:
+        data = read_sheet(client, sheet_id, sheet_name)
+        if data:
+            print(f"Data from sheet {sheet_name}:")
+            filtered_data = [row for row in data[1:] if any(cell.strip() for cell in row)]  # Пропускаем первую строку
+
+            start_date = sheet_name  # Используем название листа как стартовую дату
+            filled_data = fill_dates(filtered_data, start_date)
+            for row in filled_data:
+                schedule.insertData(table_name, row[0], row[1], row[2], row[3], int(row[4]), row[5], row[6])
+
+        '''if current_date.weekday() == 6:  #если текущая дата = воскресенью (6 - воскресенье)
+            next_monday_date = current_date + timedelta(days=(7 - current_date.weekday())) #мы вычисляем сколько дней до следующего понедельника, 7 - номер текущей даты и определяем следующую дату понедельника
+            if sheet_date == next_monday_date: #если дата листа равна дате понедельника то добавляем условие
+                data = read_sheet(client, sheet_id, sheet_name)
+                print(data)
+
+                #переместить
+                if data:
+                    pass'''
+
+
+'''scopes = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
-table_name = "Netology"
 
 creds = Credentials.from_service_account_file("mypython-414513-94cec7c6b257.json", scopes=scopes)
 client = gspread.authorize(creds)
 
 sheet_id = "1MRXzlw20uGOOkX-0zNXOS9zuWvuORoSVk5ouAq05Tls" #ссылка на гугл таблицу
-sheet = client.open_by_key(sheet_id)
+sheet = client.open_by_key(sheet_id)'''
 
-counter = 2 #счетчик для вывода строк гугл таблицы
-schedule = ScheduleDB()
-schedule.createNewGroup(table_name)
 
 '''print("Before exec")
 print(schedule.getDataByDate(table_name, '15-04-2024'))'''
-schedule.clearData(table_name)
-while True:
+'''while True:
     values_list = sheet.sheet1.row_values(counter)
     if (values_list == []):
         break
     # self, tableName, date, timeLesson, subjectName, subgroupNumber, teacherName, linkLesson
     schedule.insertData(table_name, values_list[0], values_list[1], values_list[2], int(values_list[3]), values_list[4], values_list[5])
     #print(values_list)
-    counter += 1
+    counter += 1'''
 
 '''print("After exec")
 print(schedule.getDataByDate(table_name, '15-04-2024'))'''
 
-
+'''
 # Токен вашего бота
 BOT_TOKEN = "6324418773:AAGqLSzRvKJzSbO721xM2CS9O0TL1t5BrBc"
 
@@ -107,7 +180,7 @@ def subscribe_handler(message):
             cursor.execute("INSERT INTO message (id, name) VALUES (?, ?)", (msg.chat.id, msg.text))
         bot.send_message(msg.chat.id, "Вы успешно подписались на рассылку! 🎉", reply_markup=generate_menu())
 
-'''@bot.message_handler(func=lambda message: message.text == "Подписаться на рассылку")
+@bot.message_handler(func=lambda message: message.text == "Подписаться на рассылку")
 def subscribe_handler(message):
     # Задаем вопрос о группе
     bot.send_message(message.chat.id, "К какой группе вы относитесь?", reply_markup=telebot.types.ReplyKeyboardRemove())
@@ -125,7 +198,7 @@ def subscribe_handler(message):
         conn.close()
 
         # Отправляем сообщение об успешной подписке
-        bot.send_message(msg.chat.id, "Вы успешно подписались на рассылку! 🎉", reply_markup=generate_menu())'''
+        bot.send_message(msg.chat.id, "Вы успешно подписались на рассылку! 🎉", reply_markup=generate_menu())
 
 # Обработка команды /show_schedule
 @bot.message_handler(func=lambda message: message.text == "Показать расписание")
@@ -189,10 +262,13 @@ conn.commit()
 
 # Закрываем соединение
 conn.close()
-
+'''
 
 # Запускаем функцию рассылки
 if __name__ == "__main__":
-    generate_menu()
-    bot.polling()
+    #generate_menu()
+    #bot.polling()
+    sheet_id = "1MRXzlw20uGOOkX-0zNXOS9zuWvuORoSVk5ouAq05Tls"
+    process_sheets(sheet_id)
+
 
