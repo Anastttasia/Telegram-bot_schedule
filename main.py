@@ -112,7 +112,7 @@ print(schedule.getDataByDate(table_name, '15-04-2024'))'''
 '''print("After exec")
 print(schedule.getDataByDate(table_name, '15-04-2024'))'''
 
-'''
+
 # Токен вашего бота
 BOT_TOKEN = "6324418773:AAGqLSzRvKJzSbO721xM2CS9O0TL1t5BrBc"
 
@@ -120,48 +120,42 @@ BOT_TOKEN = "6324418773:AAGqLSzRvKJzSbO721xM2CS9O0TL1t5BrBc"
 DATABASE_NAME = "message.db"
 DATABASE_SCHEDULE = "schedule.db"
 
-# Создаем бота
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Функция для получения расписания из базы данных
-def get_schedule_message():
+def get_all_user_ids():
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM message")
+    cursor.execute("SELECT DISTINCT id FROM message")
+    user_ids = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return user_ids
+
+def get_schedule_scheduleDb(day_of_week):
+    conn = sqlite3.connect(DATABASE_SCHEDULE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Netology WHERE date = ?", (day_of_week,))
     schedule_data = cursor.fetchall()
     conn.close()
     return schedule_data
 
-def get_schedule_scheduleDb():
-    conn = sqlite3.connect(DATABASE_SCHEDULE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Netology")
-    schedule_data1 = cursor.fetchall()
-    conn.close()
-    return schedule_data1
+def send_schedule_to_users():
+    days_of_week = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    today = days_of_week[datetime.today().weekday()]
 
-# Функция для отправки расписания пользователям
-def send_schedule_to_users(schedule_data,schedule_data1):
-    message = f"Hello! Here is your schedule for today:\n"
+    schedule_data = get_schedule_scheduleDb(today)
 
-    for row in schedule_data:
-        id = row[0]
-        try:
-            bot.send_message(id, message)
-            print(f"Расписание отправлено пользователю {id}")
-        except telebot.apihelper.ApiException as e:
-            print(f"Ошибка при отправке расписания пользователю {id}: {e}")
-
-# Функция для запуска рассылки в определенное время
-def schedule_task():
-    while True:
-        now = datetime.datetime.now()
-        if now.hour == 12 and now.minute == 23:  # Измените время на нужное
-            schedule_data = get_schedule_message()
-            send_schedule_to_users(schedule_data)
-            print("Расписание отправлено!")
-
-        time.sleep(60)  # Проверяем каждые 60 секунд
+    if schedule_data:
+        schedule_text = "Привет, твое расписание на сегодня:\n"
+        for row in schedule_data:
+            schedule_text += f"Day: {row[1]}\nTime: {row[2]}\nSubject: {row[3]}\nSubgroup: {row[4]}\nTeacher: {row[5]}\nLink: {row[6]}\n\n"
+        for user_id in get_all_user_ids():
+            try:
+                bot.send_message(user_id, schedule_text)
+                print(f"Расписание отправлено пользователю {user_id}")
+            except telebot.apihelper.ApiException as e:
+                print(f"Ошибка при отправке расписания пользователю {user_id}: {e}")
+    else:
+        print("На сегодня расписание отсутствует.")
 
 # Обработка команды /start
 @bot.message_handler(commands=['start'])
@@ -172,60 +166,30 @@ def start_handler(message):
 @bot.message_handler(func=lambda message: message.text == "Подписаться на рассылку")
 def subscribe_handler(message):
     bot.send_message(message.chat.id, "К какой группе вы относитесь?", reply_markup=telebot.types.ReplyKeyboardRemove())
+    bot.register_next_step_handler(message, handle_group_response)
 
-    @bot.message_handler(func=lambda m: m.chat.id == message.chat.id)
-    def handle_group_response(msg):
-        with sqlite3.connect(DATABASE_NAME) as conn:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO message (id, name) VALUES (?, ?)", (msg.chat.id, msg.text))
-        bot.send_message(msg.chat.id, "Вы успешно подписались на рассылку! 🎉", reply_markup=generate_menu())
-
-@bot.message_handler(func=lambda message: message.text == "Подписаться на рассылку")
-def subscribe_handler(message):
-    # Задаем вопрос о группе
-    bot.send_message(message.chat.id, "К какой группе вы относитесь?", reply_markup=telebot.types.ReplyKeyboardRemove())
-
-    # Ожидаем ответа
-    @bot.message_handler(func=lambda m: m.chat.id == message.chat.id)
-    def handle_group_response(msg):
-        # Сохраняем информацию в базу данных
-        conn = sqlite3.connect(DATABASE_NAME)
-        cursor = conn.cursor()
-        id = msg.chat.id
-        name = msg.text
-        cursor.execute("INSERT INTO message (id, name) VALUES (?, ?)", (id, name))
-        conn.commit()
-        conn.close()
-
-        # Отправляем сообщение об успешной подписке
-        bot.send_message(msg.chat.id, "Вы успешно подписались на рассылку! 🎉", reply_markup=generate_menu())
+def handle_group_response(msg):
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    user_id = msg.chat.id
+    group_name = msg.text
+    cursor.execute("INSERT INTO message (id, name) VALUES (?, ?)", (user_id, group_name))
+    conn.commit()
+    conn.close()
+    bot.send_message(msg.chat.id, "Вы успешно подписались на рассылку! 🎉", reply_markup=generate_menu())
 
 # Обработка команды /show_schedule
 @bot.message_handler(func=lambda message: message.text == "Показать расписание")
 def show_schedule_handler(message):
-    # Получаем текущую дату
-    today = date.today()
+    days_of_week = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    today = days_of_week[datetime.today().weekday()]
 
-    # Получаем расписание из базы данных
-    schedule_data = get_schedule_scheduleDb()
+    schedule_data = get_schedule_scheduleDb(today)
 
-    # Проверяем, есть ли записи в расписании для сегодняшней даты
-    schedule_for_today = []
-    for row in schedule_data:
-        schedule_date = datetime.strptime(row[1], '%d-%m-%Y').date()
-        if schedule_date == today:
-            schedule_for_today.append(row)
-
-    # Формируем сообщение
-    if schedule_for_today:
+    if schedule_data:
         schedule_text = "Привет, твое расписание на сегодня:\n"
-        for row in schedule_for_today:
-            schedule_text += f"Date: {row[1]}\n"
-            schedule_text += f"Time: {row[2]}\n"
-            schedule_text += f"Subject: {row[3]}\n"
-            schedule_text += f"Subgroup: {row[4]}\n"
-            schedule_text += f"Teacher: {row[5]}\n"
-            schedule_text += f"Link: {row[6]}\n\n"
+        for row in schedule_data:
+            schedule_text += f"День: {row[1]}\nВремя: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nГруппа: {row[5]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
         m = schedule_text
         if len(m) > 4095:
             for x in range(0, len(m), 4095):
@@ -235,18 +199,22 @@ def show_schedule_handler(message):
     else:
         bot.send_message(message.chat.id, "На сегодня расписание отсутствует. 🤔", reply_markup=generate_menu())
 
-
 # Обработка команды /help
 @bot.message_handler(func=lambda message: message.text == "Помощь")
 def help_handler(message):
-    bot.send_message(message.chat.id, "Я могу отправлять вам расписание каждый день в 7:00 утра.\n\nВы можете подписаться на рассылку, чтобы получать расписание, или просто посмотреть его прямо сейчас.\n\nИспользуйте кнопки ниже для взаимодействия со мной.", reply_markup=generate_menu())
+    bot.send_message(message.chat.id, "Я могу отправлять вам расписание каждый день в 9:00 утра.\n\nВы можете подписаться на рассылку, чтобы получать расписание, или просто посмотреть его прямо сейчас.\n\nИспользуйте кнопки ниже для взаимодействия со мной.", reply_markup=generate_menu())
 
-# Функция для создания меню с кнопками
 def generate_menu():
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.row("Подписаться на рассылку", "Показать расписание")
     keyboard.row("Помощь")
     return keyboard
+
+def schedule_checker():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
 
 conn = sqlite3.connect("message.db")
 
@@ -262,12 +230,12 @@ conn.commit()
 
 # Закрываем соединение
 conn.close()
-'''
+
 
 # Запускаем функцию рассылки
 if __name__ == "__main__":
-    #generate_menu()
-    #bot.polling()
+    generate_menu()
+    bot.polling()
     sheet_id = "1MRXzlw20uGOOkX-0zNXOS9zuWvuORoSVk5ouAq05Tls"
     process_sheets(sheet_id)
 
