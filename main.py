@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, date
 import time
 
 # Токен вашего бота
-BOT_TOKEN = "6324418773:AAGqLSzRvKJzSbO721xM2CS9O0TL1t5BrBc"
+BOT_TOKEN = "6324418773:AAG6oyjJXC6OlyDEQfSCJR1r6QpVZZQklOs"
 
 # Название базы данных
 DATABASE_NAME = "message.db"
@@ -20,32 +20,18 @@ def get_all_user_ids():
     conn.close()
     return user_ids
 
-def get_schedule_scheduleDb(day_of_week):
+
+def get_schedule_scheduleDb(date):
     conn = sqlite3.connect(DATABASE_SCHEDULE)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Netology WHERE date = ?", (day_of_week,))
+    date_string = date.strftime('%d-%m-%Y')
+    cursor.execute("SELECT * FROM Netology WHERE date = ?", (date_string,))
     schedule_data = cursor.fetchall()
+    if not schedule_data:  # Check if schedule_data is empty
+        schedule_data = []  # Return an empty list
     conn.close()
     return schedule_data
 
-def send_schedule_to_users():
-    days_of_week = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
-    today = days_of_week[datetime.today().weekday()]
-
-    schedule_data = get_schedule_scheduleDb(today)
-
-    if schedule_data:
-        schedule_text = "Привет, твое расписание на сегодня:\n"
-        for row in schedule_data:
-            schedule_text += f"Day: {row[1]}\nTime: {row[2]}\nSubject: {row[3]}\nSubgroup: {row[4]}\nTeacher: {row[5]}\nLink: {row[6]}\n\n"
-        for user_id in get_all_user_ids():
-            try:
-                bot.send_message(user_id, schedule_text)
-                print(f"Расписание отправлено пользователю {user_id}")
-            except telebot.apihelper.ApiException as e:
-                print(f"Ошибка при отправке расписания пользователю {user_id}: {e}")
-    else:
-        print("На сегодня расписание отсутствует.")
 
 # Обработка команды /start
 @bot.message_handler(commands=['start'])
@@ -71,12 +57,21 @@ def handle_group_response(msg):
 # Обработка команды /show_schedule
 @bot.message_handler(func=lambda message: message.text == "Показать расписание")
 def show_schedule_handler(message):
-    days_of_week = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
-    today = days_of_week[datetime.today().weekday()]
+    # Получаем текущую дату
+    today = date.today()
 
+    # Получаем расписание из базы данных
     schedule_data = get_schedule_scheduleDb(today)
 
-    if schedule_data:
+    # Проверяем, есть ли записи в расписании для сегодняшней даты
+    schedule_for_today = []
+    for row in schedule_data:
+        schedule_date = datetime.strptime(row[1], '%d-%m-%Y').date()
+        if schedule_date == today:
+            schedule_for_today.append(row)
+
+    # Формируем сообщение
+    if schedule_for_today:
         schedule_text = "Привет, твое расписание на сегодня:\n"
         for row in schedule_data:
             schedule_text += f"День: {row[1]}\nВремя: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nГруппа: {row[5]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
@@ -89,6 +84,7 @@ def show_schedule_handler(message):
     else:
         bot.send_message(message.chat.id, "На сегодня расписание отсутствует. 🤔", reply_markup=generate_menu())
 
+
 # Обработка команды /help
 @bot.message_handler(func=lambda message: message.text == "Помощь")
 def help_handler(message):
@@ -99,12 +95,6 @@ def generate_menu():
     keyboard.row("Подписаться на рассылку", "Показать расписание")
     keyboard.row("Помощь")
     return keyboard
-
-def schedule_checker():
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
 
 conn = sqlite3.connect("message.db")
 
