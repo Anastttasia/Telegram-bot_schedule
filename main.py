@@ -1,7 +1,12 @@
 import telebot
 import sqlite3
+from db.schedule_db import ScheduleDB
 from datetime import datetime, timedelta, date
 import time
+
+table_name = "Netology"
+schedule = ScheduleDB()
+schedule.createNewGroup(table_name)
 
 # Токен вашего бота
 BOT_TOKEN = "6324418773:AAGqLSzRvKJzSbO721xM2CS9O0TL1t5BrBc"

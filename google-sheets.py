@@ -1,14 +1,11 @@
 from google.oauth2.service_account import Credentials
 import gspread
-from db.schedule_db import ScheduleDB
+from main import schedule, table_name
 from datetime import datetime, timedelta, date
 import re
 
 sheet_id = "1MRXzlw20uGOOkX-0zNXOS9zuWvuORoSVk5ouAq05Tls"
-table_name = "Netology"
-schedule = ScheduleDB()
-schedule.createNewGroup(table_name)
-schedule.clearData(table_name)
+
 
 def authenticate_sheets():
     scopes = [
