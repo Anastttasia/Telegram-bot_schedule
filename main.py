@@ -74,7 +74,7 @@ def show_schedule_handler(message):
         cursor_message.execute("SELECT name FROM message WHERE id = ?", (message.chat.id,))
         group_name = cursor_message.fetchone()[0]
 
-        if row[4] == message[1]:
+        if row[4] == group_name:
             for row in schedule_data:
                 schedule_text += f"День: {row[1]}\nВремя: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nГруппа: {row[5]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
             m = schedule_text
