@@ -68,6 +68,12 @@ def show_schedule_handler(message):
         #group_id_in_message = message
         #group_id_in_schedule = schedule.getDataByDate(table_name, today)
         #if group_id_in_message[1] == group_id_in_schedule[4]:
+
+        conn_message = sqlite3.connect(DATABASE_NAME)
+        cursor_message = conn_message.cursor()
+        cursor_message.execute("SELECT name FROM message WHERE id = ?", (message.chat.id,))
+        group_name = cursor_message.fetchone()[0]
+
         if row[4] == message[1]:
             for row in schedule_data:
                 schedule_text += f"День: {row[1]}\nВремя: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nГруппа: {row[5]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
