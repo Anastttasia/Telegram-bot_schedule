@@ -26,11 +26,11 @@ def get_all_user_ids():
     conn.close()
     return user_ids
 
-def get_schedule_scheduleDb(date):
+def get_schedule_scheduleDb(date, groupId):
     conn = sqlite3.connect(DATABASE_SCHEDULE)
     cursor = conn.cursor()
     date_string = date.strftime('%d-%m-%Y')
-    cursor.execute("SELECT * FROM Netology WHERE date = ?", (date_string,))
+    cursor.execute("SELECT * FROM Netology WHERE date = ? AND subgroup_number = ?", (date_string, groupId))
     schedule_data = cursor.fetchall()
     if not schedule_data:  # Check if schedule_data is empty
         schedule_data = []  # Return an empty list
@@ -51,40 +51,38 @@ def handle_group_response(msg):
     group_name = msg.text
     insert_or_update_user(user_id, group_name)
     bot.send_message(msg.chat.id, "Вы успешно подписались на рассылку! 🎉", reply_markup=generate_menu())
-
 @bot.message_handler(func=lambda message: message.text == "Показать расписание")
 def show_schedule_handler(message):
+    conn_message = sqlite3.connect(DATABASE_NAME)
+    cursor_message = conn_message.cursor()
+    cursor_message.execute("SELECT name FROM message WHERE id = ?", (message.chat.id,))
+    group_name = cursor_message.fetchone()[0]
+
     today = date.today()
-    schedule_data = get_schedule_scheduleDb(today)
+
+    schedule_data = get_schedule_scheduleDb(today, group_name)
 
     schedule_for_today = []
     for row in schedule_data:
         schedule_date = datetime.strptime(row[1], '%d-%m-%Y').date()
         if schedule_date == today:
+            print("ok")
             schedule_for_today.append(row)
 
     if schedule_for_today:
         schedule_text = "Привет, твое расписание на сегодня:\n"
-        #group_id_in_message = message
-        #group_id_in_schedule = schedule.getDataByDate(table_name, today)
-        #if group_id_in_message[1] == group_id_in_schedule[4]:
+        for row in schedule_data:
+            schedule_text += f"День: {row[1]}\nВремя: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nГруппа: {row[5]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
 
-        conn_message = sqlite3.connect(DATABASE_NAME)
-        cursor_message = conn_message.cursor()
-        cursor_message.execute("SELECT name FROM message WHERE id = ?", (message.chat.id,))
-        group_name = cursor_message.fetchone()[0]
-
-        if row[4] == group_name:
-            for row in schedule_data:
-                schedule_text += f"День: {row[1]}\nВремя: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nГруппа: {row[5]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
-            m = schedule_text
-            if len(m) > 4095:
-                for x in range(0, len(m), 4095):
-                    bot.reply_to(message, text=m[x:x + 4095])
-            else:
-                bot.reply_to(message, text=m)
+        print(schedule_text)
+        m = schedule_text
+        if len(m) > 4095:
+            for x in range(0, len(m), 4095):
+                bot.reply_to(message, text=m[x:x + 4095])
         else:
-            bot.send_message(message.chat.id, "На сегодня расписание отсутствует. 🤔", reply_markup=generate_menu())
+            bot.reply_to(message, text=m)
+    else:
+        bot.send_message(message.chat.id, "На сегодня расписание отсутствует. 🤔", reply_markup=generate_menu())
 
 @bot.message_handler(func=lambda message: message.text == "Помощь")
 def help_handler(message):
@@ -125,22 +123,23 @@ def send_schedule_notification(user_id, group_name, schedule_data):
     else:
         bot.send_message(user_id, f"На сегодня расписание для группы '{group_name}' отсутствует. 🤔")
 
-def check_new_subscriptions():
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name FROM message")
-    users = cursor.fetchall()
-    conn.close()
-
-    today = date.today()
-    schedule_data = get_schedule_scheduleDb(today)
-
-    for user_id, group_name in users:
-        send_schedule_notification(user_id, group_name, schedule_data)
-
-    threading.Timer(300, check_new_subscriptions).start()
-
-check_new_subscriptions()
+# def check_new_subscriptions():
+#     conn = sqlite3.connect(DATABASE_NAME)
+#     cursor = conn.cursor()
+#     cursor.execute("SELECT id, name FROM message")
+#     users = cursor.fetchall()
+#     conn.close()
+#
+#     today = date.today()
+#
+#     schedule_data = get_schedule_scheduleDb(today)
+#
+#     for user_id, group_name in users:
+#         send_schedule_notification(user_id, group_name, schedule_data)
+#
+#     threading.Timer(300, check_new_subscriptions).start()
+#
+# check_new_subscriptions()
 
 bot.polling()
 
