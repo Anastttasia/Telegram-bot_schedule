@@ -11,7 +11,7 @@ def authenticate_sheets():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets"
     ]
-    creds = Credentials.from_service_account_file("mypython-414513-94cec7c6b257.json", scopes=scopes)
+    creds = Credentials.from_service_account_file("mypython-414513-7391c5995c16.json", scopes=scopes)
     client = gspread.authorize(creds)
     return client
 

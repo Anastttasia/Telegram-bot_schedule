@@ -1,5 +1,3 @@
-import threading
-
 import telebot
 import sqlite3
 from db.schedule_db import ScheduleDB
@@ -66,15 +64,12 @@ def show_schedule_handler(message):
     for row in schedule_data:
         schedule_date = datetime.strptime(row[1], '%d-%m-%Y').date()
         if schedule_date == today:
-            print("ok")
             schedule_for_today.append(row)
 
     if schedule_for_today:
         schedule_text = "Привет, твое расписание на сегодня:\n"
         for row in schedule_data:
             schedule_text += f"День: {row[1]}\nВремя: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nГруппа: {row[5]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
-
-        print(schedule_text)
         m = schedule_text
         if len(m) > 4095:
             for x in range(0, len(m), 4095):
