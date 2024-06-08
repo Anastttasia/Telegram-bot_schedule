@@ -10,6 +10,7 @@ table_name = "Netology"
 schedule = ScheduleDB()
 schedule.createNewGroup(table_name)
 
+
 def authenticate_sheets():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets"
@@ -69,4 +70,5 @@ def process_sheets(sheet_id):
             for row in filled_data:
                 schedule.insertData(table_name, row[0], row[1], row[2], row[3], int(row[4]), row[5], row[6])
 
+schedule.clearData(table_name)
 process_sheets(sheet_id)
