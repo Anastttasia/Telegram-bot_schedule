@@ -143,4 +143,3 @@ bot.polling()
 if __name__ == "__main__":
     generate_menu()
     bot.polling()
-

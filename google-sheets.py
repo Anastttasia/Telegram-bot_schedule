@@ -1,8 +1,8 @@
 from google.oauth2.service_account import Credentials
 import gspread
 from db.schedule_db import ScheduleDB
-#from main import schedule, table_name
 from datetime import datetime, timedelta
+import os
 
 sheet_id = "1MRXzlw20uGOOkX-0zNXOS9zuWvuORoSVk5ouAq05Tls"
 
@@ -10,12 +10,17 @@ table_name = "Netology"
 schedule = ScheduleDB()
 schedule.createNewGroup(table_name)
 
+# Получить текущую директорию скрипта
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Сформировать полный путь к JSON-файлу
+json_path = os.path.join(script_dir, "mypython-414513-7391c5995c16.json")
+
 
 def authenticate_sheets():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets"
     ]
-    creds = Credentials.from_service_account_file("mypython-414513-7391c5995c16.json", scopes=scopes)
+    creds = Credentials.from_service_account_file(json_path, scopes=scopes)
     client = gspread.authorize(creds)
     return client
 

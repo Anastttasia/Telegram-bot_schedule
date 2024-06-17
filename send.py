@@ -1,8 +1,8 @@
+#не работает
 from main import bot, DATABASE_NAME, get_schedule_scheduleDb, generate_menu
 from datetime import datetime, date
 import sqlite3
 
-@bot.message_handler(func=lambda message: message.text == "Показать расписание")
 def show_schedule_handler(message):
     conn_message = sqlite3.connect(DATABASE_NAME)
     cursor_message = conn_message.cursor()
