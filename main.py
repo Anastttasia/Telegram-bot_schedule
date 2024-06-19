@@ -8,7 +8,7 @@ schedule = ScheduleDB()
 schedule.createNewGroup(table_name)
 
 # Токен вашего бота
-BOT_TOKEN = "6324418773:AAFLBSAf5GsFlgoafUbcQPs-VkKFqJD2rqc"
+BOT_TOKEN = "6324418773:AAEIWge54hrrxGvRnJepfgLC4y7u_A7Me_A"
 
 DATABASE_NAME = "message.db"
 DATABASE_SCHEDULE = "schedule.db"
