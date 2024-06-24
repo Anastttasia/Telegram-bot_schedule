@@ -8,7 +8,7 @@ schedule = ScheduleDB()
 schedule.createNewGroup(table_name)
 
 # Токен вашего бота
-BOT_TOKEN = "6324418773:AAEIWge54hrrxGvRnJepfgLC4y7u_A7Me_A"
+BOT_TOKEN = "6324418773:AAFReFGni232-0CACfsQvNPdwEs5YM58nuo"
 
 DATABASE_NAME = "message.db"
 DATABASE_SCHEDULE = "schedule.db"
@@ -149,7 +149,6 @@ def insert_or_update_user(chat_id, group_name):
 #
 # check_new_subscriptions()
 
-bot.polling()
 
 
 # Запускаем функцию рассылки

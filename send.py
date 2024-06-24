@@ -1,47 +1,45 @@
-#не работает
-import sqlite3
-from datetime import date, datetime
+
 import telebot
-from telebot import types
-import time
+import sqlite3
+from datetime import date
+from db.schedule_db import ScheduleDB
 
-BOT_TOKEN = '6324418773:AAEIWge54hrrxGvRnJepfgLC4y7u_A7Me_A'
-USERS_DATABASE = 'message.db'
-SCHEDULE_DATABASE = 'schedule.db'
+# Константы
+table_name = "Netology"
+schedule = ScheduleDB()
+schedule.createNewGroup(table_name)
+
+BOT_TOKEN = '6324418773:AAFReFGni232-0CACfsQvNPdwEs5YM58nuo'
+
+MAX_MESSAGE_LENGTH = 4095
+
+DATABASE_NAME = "message.db"
+DATABASE_SCHEDULE = "schedule.db"
+
+MAX_MESSAGE_LENGTH = 4095
+
+# Инициализация бота
 bot = telebot.TeleBot(BOT_TOKEN)
-
-# Функция для получения расписания из базы данных
-def get_schedule_scheduleDb(date, group_name):
-    conn = sqlite3.connect(SCHEDULE_DATABASE)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM schedule WHERE schedule_date = ? AND group_name = ?",
-        (date.strftime('%d-%m-%Y'), group_name))
-    schedule_data = cursor.fetchall()
-    conn.close()
-    return schedule_data
 
 
 # Функция для отправки расписания пользователям
 def send_schedule_to_users():
     # Подключение к базе данных с пользователями
-    conn_users = sqlite3.connect(USERS_DATABASE)
+    conn_users = sqlite3.connect(DATABASE_NAME)
     cursor_users = conn_users.cursor()
 
     # Получаем всех пользователей
-    cursor_users.execute(
-        "SELECT id, name FROM message")
+    cursor_users.execute("SELECT id, name FROM message")
     users = cursor_users.fetchall()
     conn_users.close()
 
     # Подключение к базе данных с расписанием
-    conn_schedule = sqlite3.connect(SCHEDULE_DATABASE)
+    conn_schedule = sqlite3.connect(DATABASE_SCHEDULE)
     cursor_schedule = conn_schedule.cursor()
 
     # Получаем расписание на сегодня для всех групп
     today = date.today().strftime('%d-%m-%Y')
-    cursor_schedule.execute("SELECT * FROM schedule WHERE schedule_date = ?",
-                           (today,))
+    cursor_schedule.execute("SELECT * FROM Netology WHERE date = ?", (today,))
     schedule_data = cursor_schedule.fetchall()
 
     # Группируем расписание по группам
@@ -54,20 +52,31 @@ def send_schedule_to_users():
 
     # Проходим по пользователям и отправляем расписание
     for user_id, group_name in users:
-        user_schedule = schedule_by_group.get(group_name)
+        user_schedule = schedule_by_group.get(int(group_name))
+
         if user_schedule:
-            schedule_text = f"Привет, {group_name}, твое расписание на сегодня:\n"
+            schedule_text = f"Привет, твое расписание на сегодня для группы {group_name}:\n"
             for row in user_schedule:
-                schedule_text += f"Время: {row[2]}\nПредмет: {row[3]}\nОписание: {row[4]}\nПреподаватель: {row[6]}\nСсылка: {row[7]}\n\n"
+                schedule_text += (
+                    f"День: {row[1]}\n"
+                    f"Время: {row[2]}\n"
+                    f"Предмет: {row[3]}\n"
+                    f"Описание: {row[4]}\n"
+                    f"Группа: {row[5]}\n"
+                    f"Преподаватель: {row[6]}\n"
+                    f"Ссылка: {row[7]}\n\n"
+                )
 
             # Отправляем сообщение с учетом ограничения длины
-            if len(schedule_text) > 4095:
-                for x in range(0, len(schedule_text), 4095):
-                    bot.send_message(user_id, text=schedule_text[x:x + 4095])
+            if len(schedule_text) > MAX_MESSAGE_LENGTH:
+                for x in range(0, len(schedule_text), MAX_MESSAGE_LENGTH):
+                    bot.send_message(user_id, text=schedule_text[x:x + MAX_MESSAGE_LENGTH])
             else:
                 bot.send_message(user_id, text=schedule_text)
         else:
             bot.send_message(user_id, "На сегодня расписание отсутствует. 🤔")
     conn_schedule.close()
 
-bot.polling(none_stop=True)
+
+# Основная логика программы
+send_schedule_to_users()
