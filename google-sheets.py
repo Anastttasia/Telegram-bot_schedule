@@ -4,7 +4,7 @@ from db.schedule_db import ScheduleDB
 from datetime import datetime, timedelta
 import os
 
-sheet_id = "1MRXzlw20uGOOkX-0zNXOS9zuWvuORoSVk5ouAq05Tls"
+sheet_id = "***"
 
 table_name = "Netology"
 schedule = ScheduleDB()
